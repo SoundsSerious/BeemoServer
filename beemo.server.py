@@ -19,27 +19,6 @@ import pybonjour
 from twisted.internet.interfaces import IReadDescriptor
 from zope import interface
 
-class MDNS_ServiceDescriptor(object):
-
-    interface.implements(IReadDescriptor)
-
-    def __init__(self, sdref):
-        self.sdref = sdref
-
-    def doRead(self):
-        pybonjour.DNSServiceProcessResult(self.sdref)
-
-    def fileno(self):
-        return self.sdref.fileno()
-
-    def logPrefix(self):
-        return "bonjour"
-
-    def connectionLost(self, reason):
-        self.sdref.close()
-        
-        
-
 def broadcast(reactor, regtype, port, name=None):
     def _callback(sdref, flags, errorCode, name, regtype, domain):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
@@ -65,7 +44,27 @@ def broadcasting(args):
 def failed(errorCode):
     log.err(errorCode)
 
-class LoggingProtocol(LineReceiver):
+class MDNS_ServiceDescriptor(object):
+
+    interface.implements(IReadDescriptor)
+
+    def __init__(self, sdref):
+        self.sdref = sdref
+
+    def doRead(self):
+        pybonjour.DNSServiceProcessResult(self.sdref)
+
+    def fileno(self):
+        return self.sdref.fileno()
+
+    def logPrefix(self):
+        return "bonjour"
+
+    def connectionLost(self, reason):
+        self.sdref.close()
+        
+
+class Beem(LineReceiver):
     
     def __init__(self, factory):
         self.factory = factory
@@ -75,9 +74,9 @@ class LoggingProtocol(LineReceiver):
         self.sendLine("What's your name?")
         
     def lineReceived(self, line):
-        log.msg( 'GOT:\t'+line )
+        log.msg( ''+line )
 
-class LogfileFactory(ReconnectingClientFactory):
+class BeemoClient(ReconnectingClientFactory):
     protocol = LoggingProtocol
     
     def startedConnecting(self, connector):
@@ -105,14 +104,14 @@ if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.realpath(__file__)))    
     
     print "starting rectors capin\'"
-    reactor.connectTCP(HOST, PORT, LogfileFactory())
+    reactor.connectTCP(HOST, PORT, BeemoClient())
     
     print 'Opening Log'
     #log.startLogging(open('mdns_log.log', 'w'))
     log.startLogging( sys.stdout )
     
     print 'Starting MDNS Name Service'
-    d = broadcast(reactor, "_beem._tcp", PORT, "beemo_dev")
+    d = broadcast(reactor, "_beem._tcp", PORT+1, "beemo_dev")
     d.addCallback(broadcasting)
     d.addErrback(failed)
     
