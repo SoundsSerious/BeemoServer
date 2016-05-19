@@ -77,7 +77,9 @@ class Beem(LineReceiver):
         log.msg( ''+line )
 
 class BeemoClient(ReconnectingClientFactory):
-    protocol = LoggingProtocol
+    protocol = Beem
+
+    
     
     def startedConnecting(self, connector):
         print 'Started to connect.'
